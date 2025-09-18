@@ -1,8 +1,16 @@
 /**
  * Create a card game object
+ * @param {Phaser.Scene} scene - The Phaser scene
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {number} w - Width
+ * @param {number} h - Height
+ * @param {Card} cardObj - Card object (NumberCard or OperatorCard)
+ * @param {boolean} draggable - Whether the card is draggable
+ * @param {object} opts - Additional options
+ * @returns {Phaser.GameObjects.Container & { cardObj: Card }}
  */
-export const createCard = (scene, x, y, w, h, label = '', draggable = false, opts = {}) => {
-
+export const createCard = (scene, x, y, w, h, cardObj, draggable = false, opts = {}) => {
     // white rounded rectangle, bold border, drop shadow
     const group = scene.add.container(x, y);
     const shadow = scene.add.rectangle(4, 6, w, h, 0x000000, 0.18).setOrigin(0, 0);
@@ -13,7 +21,7 @@ export const createCard = (scene, x, y, w, h, label = '', draggable = false, opt
     card.radius = 8; // rounded corners
 
     let textColor = '#000000';
-    const text = scene.add.text(w / 2, h / 2, label, {
+    const text = scene.add.text(w / 2, h / 2, cardObj.value?.toString() ?? '', {
         fontSize: opts.fontSize ?? 22,
         color: opts.color ?? textColor,
         fontStyle: opts.fontStyle ?? 'bold',
@@ -32,6 +40,7 @@ export const createCard = (scene, x, y, w, h, label = '', draggable = false, opt
 
     group.shadow = shadow; // used to individually change shadow properties on drag
     group.slot = null; // the slot the card is in
+    group.cardObj = cardObj; // reference to the Card object
 
     if (draggable) {
         group.setSize(w, h);

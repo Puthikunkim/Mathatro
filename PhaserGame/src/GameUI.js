@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GenerateObjective } from './GenerateObjective';
 import { createCard } from './createCard.js';
 import { createCardSlot } from './createCardSlot.js';
+import { NumberCard, OperatorCard } from './Card.ts';
 
 
 /**
@@ -160,17 +161,23 @@ export class GameUI extends Phaser.Scene {
 
         for (let i = 0; i < this.handSlots.length; i++) {
             const slot = this.handSlots[i];
-            const label = (items[i] ?? '').toString();
+            const item = items[i];
+            let cardObj;
+            if (typeof item === 'number') {
+                cardObj = new NumberCard(item);
+            } else if (typeof item === 'string' && ['+', '-', '*', '/', '^'].includes(item)) {
+                cardObj = new OperatorCard(item);
+            } else {
+                cardObj = new NumberCard(0); // placeholder
+            }
             const isPlaceholder = items.length === 0;
-
-            const card = createCard(this, 0, 0, cardW, cardH, label, true, { fontSize: 22, color: '#222222' });
+            const card = createCard(this, 0, 0, cardW, cardH, cardObj, true, { fontSize: 22, color: '#222222' });
             if (isPlaceholder) {
                 card.list[1].fillColor = 0xeeeeee;
                 card.list[2].setText('');
             }
             slot.setCard(card);
             card.slot = slot; // link card to its slot
-
             this.handContainer.add(card);
             this.attachCardPointerListeners(card);
         }
@@ -194,9 +201,17 @@ export class GameUI extends Phaser.Scene {
         const cardW = 60, cardH = 84;
         for (let i = 0; i < this.resultSlots.length; i++) {
             const slot = this.resultSlots[i];
-            const label = (items[i] ?? '').toString();
+            const item = items[i];
+            let cardObj;
+            if (typeof item === 'number') {
+                cardObj = new NumberCard(item);
+            } else if (typeof item === 'string' && ['+', '-', '*', '/', '^'].includes(item)) {
+                cardObj = new OperatorCard(item);
+            } else {
+                cardObj = new NumberCard(0); // placeholder
+            }
             const isPlaceholder = items.length === 0;
-            const card = createCard(this, 0, 0, cardW, cardH, label, true, { fontSize: 22, color: '#222222' });
+            const card = createCard(this, 0, 0, cardW, cardH, cardObj, true, { fontSize: 22, color: '#222222' });
             if (isPlaceholder) {
                 card.list[1].fillColor = 0xeeeeee;
                 card.list[2].setText('');

@@ -1,20 +1,25 @@
-export function solveProblem(cardArray: any[]): number[] | null {
+import { Card, NumberCard, OperatorCard } from '../Card';
 
-    // First we seperate the card array into different problems - an array of strings
+/**
+ * Solve the problem using an array of Card instances (NumberCard or OperatorCard)
+ * @param {Array<Card>} cardArray
+ * @returns {number[] | null}
+ */
+export function solveProblem(cardArray: Card[]): number[] | null {
+    // First we separate the card array into different problems - an array of strings
     let problems: string[] = [""];
 
     let lastWasNumber = false;
     cardArray.forEach(card => {
-        if (card.value === undefined || card.isOperator === undefined) {
-            console.log("Error: card does not have value or isOperator: " + JSON.stringify(card));
-            return; // this does not return out of solveProblem, it just acts as a break in the forEach
+        if (!(card instanceof Card)) {
+            console.log("Error: not a Card instance: " + JSON.stringify(card));
+            return;
         }
-
-        if (card.isOperator === true) {
+        if (card instanceof OperatorCard) {
             lastWasNumber = false;
             // add operator 
             problems[problems.length - 1] += card.value;
-        } else if (card.isOperator === false) {
+        } else if (card instanceof NumberCard) {
             if (lastWasNumber === true) {
                 // if the last entry was a number, we start a new problem
                 problems.push("" + card.value);
@@ -40,52 +45,76 @@ export function solveProblem(cardArray: any[]): number[] | null {
     return solutions;
 }
 
+/**
+ * Evaluate a string math expression with operator precedence
+ * Supports +, -, *, /, ^
+ * @param {string} stringProblem
+ * @returns {number}
+ */
 function solveStringProblem(stringProblem: string): number {
-    let solution: number = 0;
-    let lastOperator: string = "";
-    let numberBuffer: string = "";
-    for (const character of stringProblem) {
-        if (!isNaN(Number(character))) {
-            // digits
-            numberBuffer += character;
+    // Tokenize
+    const tokens: (string|number)[] = [];
+    let numberBuffer = '';
+    for (const char of stringProblem) {
+        if (!isNaN(Number(char))) {
+            numberBuffer += char;
         } else {
-            // operator - apply last operator and buffered number, then update last operator and reset buffered number
-            solution = handleOperator(solution, lastOperator, Number(numberBuffer));
-
-            numberBuffer = "";
-            lastOperator = character;
+            if (numberBuffer.length > 0) {
+                tokens.push(Number(numberBuffer));
+                numberBuffer = '';
+            }
+            tokens.push(char);
         }
     }
-
-    // always handle the last number & operator
-    solution = handleOperator(solution, lastOperator, Number(numberBuffer));
-
-    return solution;
-}
-
-
-function handleOperator(total: number, operator: string, num: number): number {
-    switch (operator) {
-        case '+':
-            total += num;
-            break;
-        case '-':
-            total -= num;
-            break;
-        case '*':
-            total *= num;
-            break;
-        case '/':
-            total /= num;
-            break;
-        case '^':
-            total = Math.pow(total, num);
-            break;
-        case '':
-            total += num;
-            break;
-        default:
-            console.log("Error: unsupported operator: " + operator);
+    if (numberBuffer.length > 0) {
+        tokens.push(Number(numberBuffer));
     }
-    return total;
+
+    // Shunting Yard Algorithm to convert to Reverse Polish Notation (RPN)
+    const output: (number|string)[] = [];
+    const operators: string[] = [];
+    const precedence: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '^': 3 };
+    const rightAssociative: Record<string, boolean> = { '^': true };
+
+    for (const token of tokens) {
+        if (typeof token === 'number') {
+            output.push(token);
+        } else if (typeof token === 'string' && precedence[token] !== undefined) {
+            while (
+                operators.length > 0 &&
+                precedence[operators[operators.length - 1]] !== undefined &&
+                (
+                    (rightAssociative[token]
+                        ? precedence[token] < precedence[operators[operators.length - 1]]
+                        : precedence[token] <= precedence[operators[operators.length - 1]])
+                )
+            ) {
+                output.push(operators.pop()!);
+            }
+            operators.push(token);
+        }
+    }
+    while (operators.length > 0) {
+        output.push(operators.pop()!);
+    }
+
+    // Evaluate RPN
+    const stack: number[] = [];
+    for (const token of output) {
+        if (typeof token === 'number') {
+            stack.push(token);
+        } else if (typeof token === 'string') {
+            const b = stack.pop() ?? 0;
+            const a = stack.pop() ?? 0;
+            switch (token) {
+                case '+': stack.push(a + b); break;
+                case '-': stack.push(a - b); break;
+                case '*': stack.push(a * b); break;
+                case '/': stack.push(a / b); break;
+                case '^': stack.push(Math.pow(a, b)); break;
+                default: stack.push(0);
+            }
+        }
+    }
+    return stack.length > 0 ? stack[0] : 0;
 }
